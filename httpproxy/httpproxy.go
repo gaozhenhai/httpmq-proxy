@@ -13,6 +13,7 @@ type httpHandle struct {
 	Apihost       string
 	ListenAddress string
 	MqHandler     mqproxy.MqHandler
+	HttpSender    common.HttpSender
 }
 
 type httpHandler interface {
@@ -20,18 +21,27 @@ type httpHandler interface {
 }
 
 func NewHttpHandler(listenAddress, apihost, role, mqAddress string) (httpHandler, error) {
-	mqHandler, err := mqproxy.NewMqHandle(mqAddress, role)
+	//1、use https local request k8s
+	httpSender, err := common.NewHttpSend(apihost)
 	if err != nil {
 		return nil, err
 	}
+	/*
+		//2、use mq remote request k8s
+		mqHandler, err := mqproxy.NewMqHandle(mqAddress, role)
+		if err != nil {
+			return nil, err
+		}
+	*/
 	return &httpHandle{
 		Apihost:       apihost,
 		ListenAddress: listenAddress,
-		MqHandler:     mqHandler,
+		HttpSender:    httpSender,
 	}, nil
 }
 
 func (self httpHandle) handle(res http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
 	msg := fmt.Sprintf("[%s] %s", req.Method, req.URL)
 	body, _ := ioutil.ReadAll(req.Body)
 	requestPackage := common.RequestPackage{
@@ -42,27 +52,16 @@ func (self httpHandle) handle(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//1、use https local request k8s
-	httpSender, err := common.NewHttpSend(self.Apihost)
+	responPackage, err := self.HttpSender.SendHttpRequest(requestPackage)
 	if err != nil {
+		fmt.Printf("%s %v\n", msg, err)
 		return
 	}
-	responPackage, err := httpSender.SendHttpRequest(requestPackage)
-	if err != nil {
-		return
-	}
-
 	/*
 		//2、use mq remote request k8s
-		requestPackageByte, _ := json.Marshal(requestPackage)
-		responByte, err := self.MqHandler.SendDataToQueue(requestPackageByte)
+		responPackage, err := self.MqHandler.SendDataToQueue(requestPackage)
 		if err != nil {
 			fmt.Printf("%s %v\n", msg, err)
-			return
-		}
-
-		var responPackage common.ResponsePackage
-		if err = json.Unmarshal(responByte, &responPackage); err != nil {
-			fmt.Println(err)
 			return
 		}
 	*/
@@ -79,7 +78,7 @@ func (self httpHandle) HttpListen() {
 	fmt.Printf("listen http address: %s\n", self.ListenAddress)
 	server := &http.Server{
 		Addr:         self.ListenAddress,
-		ReadTimeout:  5 * time.Second,
+		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 	http.HandleFunc("/", self.handle)

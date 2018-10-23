@@ -53,6 +53,7 @@ func (self httpSend) SendHttpRequest(requestPackage RequestPackage) (ResponsePac
 	if err != nil {
 		return responsePackage, err
 	}
+	defer req.Body.Close()
 	req.Header = requestPackage.Header
 
 	respon, err := client.Do(req)

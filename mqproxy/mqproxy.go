@@ -19,7 +19,7 @@ type MqHandle struct {
 
 type MqHandler interface {
 	RecvDataFromQueue(httpSender common.HttpSender)
-	SendDataToQueue(requestPackage []byte) ([]byte, error)
+	SendDataToQueue(requestPackage common.RequestPackage) (common.ResponsePackage, error)
 }
 
 func NewMqHandle(address, role string) (MqHandler, error) {
@@ -42,37 +42,39 @@ func NewMqHandle(address, role string) (MqHandler, error) {
 	}, nil
 }
 
-func (self MqHandle) SendDataToQueue(requestPackage []byte) ([]byte, error) {
+func (self MqHandle) SendDataToQueue(requestPackage common.RequestPackage) (common.ResponsePackage, error) {
+	var responPackage common.ResponsePackage
 	queue, err := self.Channel.QueueDeclare("", false, true, true, false, nil)
 	if err != nil {
-		return nil, err
+		return responPackage, err
 	}
 	msgs, err := self.Channel.Consume(queue.Name, "", true, false, false, false, nil)
 	if err != nil {
-		return nil, err
+		return responPackage, err
 	}
 
 	corrId := common.RandomString(32)
+	requestPackageByte, _ := json.Marshal(requestPackage)
 	if err := self.Channel.Publish("", "dreamx_queue", false, false, amqp.Publishing{
 		CorrelationId: corrId,
 		ReplyTo:       queue.Name,
-		Body:          requestPackage,
+		Body:          requestPackageByte,
 	}); err != nil {
-		return nil, err
+		return responPackage, err
 	}
-	var temp string
+
 	for {
 		select {
 		case d := <-msgs:
-			temp = d.CorrelationId
 			if corrId == d.CorrelationId {
-				return d.Body, nil
+				err := json.Unmarshal(d.Body, &responPackage)
+				return responPackage, err
 			}
 		case <-time.After(15e9):
-			return nil, fmt.Errorf("request timeout %s - %s", corrId, temp)
+			return responPackage, fmt.Errorf("request timeout")
 		}
 	}
-	return nil, nil
+	return responPackage, nil
 }
 
 func (self MqHandle) RecvDataFromQueue(httpSender common.HttpSender) {

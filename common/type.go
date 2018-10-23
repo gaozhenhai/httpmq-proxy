@@ -11,9 +11,14 @@ const (
 )
 
 var HEAD_LIST = []string{
-	"Content-Type",
 	"Date",
+	"Content-Type",
 	"Content-Length",
+	"Content-Encoding",
+	"ccess-Control-Allow-Origin",
+	"Access-Control-Allow-Headers",
+	"Access-Control-Allow-Methods",
+	"Access-Control-Expose-Headers",
 }
 
 type RequestPackage struct {
@@ -24,7 +29,7 @@ type RequestPackage struct {
 }
 
 type ResponsePackage struct {
+	StatusCode int
 	Body       []byte
 	HeadMap    map[string]string
-	StatusCode int
 }
