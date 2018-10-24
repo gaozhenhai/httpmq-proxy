@@ -45,6 +45,7 @@ func (self httpSend) SendHttpRequest(requestPackage RequestPackage) (ResponsePac
 				RootCAs:      self.CertPool,
 				Certificates: []tls.Certificate{self.ClientCrt},
 			},
+			DisableKeepAlives: true,
 		},
 	}
 
