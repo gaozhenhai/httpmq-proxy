@@ -17,7 +17,7 @@ type httpHandle struct {
 }
 
 type httpHandler interface {
-	HttpListen()
+	HttpListen() error
 }
 
 func NewHttpHandler(listenAddress, apihost, role, mqAddress string) (httpHandler, error) {
@@ -52,7 +52,7 @@ func (self httpHandle) handle(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//1、use https local request k8s
-	responPackage, err := self.HttpSender.SendHttpRequest(requestPackage)
+	responPackage, err := self.HttpSender.SendHttpsRequest(requestPackage)
 	if err != nil {
 		fmt.Printf("%s %v\n", msg, err)
 		return
@@ -74,7 +74,7 @@ func (self httpHandle) handle(res http.ResponseWriter, req *http.Request) {
 	res.Write(responPackage.Body)
 }
 
-func (self httpHandle) HttpListen() {
+func (self httpHandle) HttpListen() error {
 	fmt.Printf("listen http address: %s\n", self.ListenAddress)
 	server := &http.Server{
 		Addr:         self.ListenAddress,
@@ -82,5 +82,5 @@ func (self httpHandle) HttpListen() {
 		WriteTimeout: 10 * time.Second,
 	}
 	http.HandleFunc("/", self.handle)
-	server.ListenAndServe()
+	return server.ListenAndServe()
 }

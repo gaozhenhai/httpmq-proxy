@@ -16,7 +16,7 @@ type httpSend struct {
 }
 
 type HttpSender interface {
-	SendHttpRequest(requestPackage RequestPackage) (ResponsePackage, error)
+	SendHttpsRequest(requestPackage RequestPackage) (ResponsePackage, error)
 }
 
 func NewHttpSend(dstAddr string) (HttpSender, error) {
@@ -37,7 +37,7 @@ func NewHttpSend(dstAddr string) (HttpSender, error) {
 	}, nil
 }
 
-func (self httpSend) SendHttpRequest(requestPackage RequestPackage) (ResponsePackage, error) {
+func (self httpSend) SendHttpsRequest(requestPackage RequestPackage) (ResponsePackage, error) {
 	var responsePackage ResponsePackage
 	client := &http.Client{
 		Transport: &http.Transport{

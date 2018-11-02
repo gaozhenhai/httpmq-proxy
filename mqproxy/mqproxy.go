@@ -96,7 +96,7 @@ func (self MqHandle) RecvDataFromQueue(httpSender common.HttpSender) {
 				if err := json.Unmarshal(d.Body, &requestPackage); err != nil {
 					fmt.Println(err)
 				}
-				responsePackage, err := httpSender.SendHttpRequest(requestPackage)
+				responsePackage, err := httpSender.SendHttpsRequest(requestPackage)
 				if err != nil {
 					fmt.Println(err)
 				}
