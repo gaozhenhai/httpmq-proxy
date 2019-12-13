@@ -5,18 +5,15 @@ PREFIX ?= 192.168.1.52/tenx_containers
 BINARY_BUILD_IMAGE = golang:1.9.2-alpine3.7
 DOCKER_BUILD_IMAGE = $(PREFIX)/httpmq-proxy:$(VERSION)
 
-all: build-binary
+all: build
 
-build-binary: clean
-	go build -v -o bin/httpmqProxy main.go
-	@#docker run --rm -v $(shell pwd):/go/src/$(shell basename $(shell pwd)) \
-	#-w /go/src/$(shell basename $(shell pwd))/cmd/ ${BINARY_BUILD_IMAGE} \
-	#/bin/sh -c "go build -v -o ../deploy/httpmqProxy"
+build: clean
+	CGO_ENABLED=0;GOOS="linux" go build -v -o httpmqProxy
 
-build-image: build-binary
-	docker build -t ${DOCKER_BUILD_IMAGE} deploy/
+mac: clean
+	CGO_ENABLED=0;GOOS="darwin" go build -v -o httpmqProxy
 
 clean:
-	rm -rf bin/httpmqProxy
+	rm -rf httpmqProxy
 
 .PHONY: all build-binary build-image clean
